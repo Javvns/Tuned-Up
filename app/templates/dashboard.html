@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}My rankings – Tuned Up{% endblock %}
+{% block content %}
+<section class="dashboard">
+  <h1>My artist rankings</h1>
+  <p class="dashboard-sub">Add artists and drag to reorder. Your list, your order.</p>
+  <div class="add-artist">
+    <input type="text" id="artist-input" placeholder="Add an artist…" autocomplete="off">
+    <button type="button" id="add-artist-btn" class="btn btn-primary">Add</button>
+  </div>
+  <div id="rankings-list" class="rankings-list" data-empty="true">
+    <div class="empty-state" id="empty-state">No artists yet. Add one above.</div>
+    <ul class="ranking-items" id="ranking-items"></ul>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.TUNEDUP = { apiBase: "/api/artists" };
+</script>
+{% endblock %}

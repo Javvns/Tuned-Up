@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Log in – Tuned Up{% endblock %}
+{% block content %}
+<section class="auth-card">
+  <h1>Log in</h1>
+  <form method="post" action="{{ url_for('auth.login') }}" class="auth-form">
+    <label for="username">Username</label>
+    <input type="text" id="username" name="username" required autofocus autocomplete="username">
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" required autocomplete="current-password">
+    <button type="submit" class="btn btn-primary btn-block">Log in</button>
+  </form>
+  <p class="auth-footer">Don’t have an account? <a href="{{ url_for('auth.register') }}">Sign up</a></p>
+</section>
+{% endblock %}

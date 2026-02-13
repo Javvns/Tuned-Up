@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Tuned Up – Rank Your Favorite Artists{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Rank your favorite artists.</h1>
+  <p class="hero-sub">Create your list. Drag to reorder. Own your taste.</p>
+  <div class="hero-actions">
+    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Get started</a>
+    <a href="{{ url_for('auth.login') }}" class="btn btn-ghost btn-lg">Log in</a>
+  </div>
+</section>
+{% endblock %}
