@@ -24,7 +24,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
-  font-size: 16px;
+  font-size: 19px;
   line-height: 1.5;
   background-image:
     radial-gradient(ellipse 80% 50% at 50% -20%, rgba(124, 58, 237, 0.12), transparent),
@@ -43,7 +43,7 @@ body {
 
 .logo {
   font-weight: 700;
-  font-size: 1.35rem;
+  font-size: 1.6rem;
   letter-spacing: -0.02em;
   color: var(--text);
   text-decoration: none;
@@ -61,7 +61,7 @@ body {
 
 .user-name {
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .btn {
@@ -71,7 +71,7 @@ body {
   padding: 0.5rem 1rem;
   border-radius: var(--radius);
   font-family: var(--font);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   font-weight: 600;
   cursor: pointer;
   border: none;
@@ -108,13 +108,18 @@ body {
 
 .btn-lg {
   padding: 0.75rem 1.5rem;
-  font-size: 1rem;
+  font-size: 1.15rem;
 }
 
 .main-content {
   max-width: 640px;
   margin: 0 auto;
   padding: 2rem 1.5rem;
+}
+
+.main-content:has(.dashboard-layout) {
+  max-width: none;
+  padding: 0;
 }
 
 .flash-messages {
@@ -124,7 +129,7 @@ body {
 .flash {
   padding: 0.75rem 1rem;
   border-radius: var(--radius);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .flash-success { background: rgba(5, 150, 105, 0.12); color: var(--success); }
@@ -138,7 +143,7 @@ body {
 }
 
 .hero h1 {
-  font-size: clamp(2rem, 5vw, 2.75rem);
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   margin: 0 0 0.75rem;
@@ -147,7 +152,7 @@ body {
 
 .hero-sub {
   color: var(--text-muted);
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   margin: 0 0 2rem;
 }
 
@@ -169,13 +174,13 @@ body {
 }
 
 .auth-card h1 {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   margin: 0 0 1.5rem;
 }
 
 .auth-form label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 0.35rem;
@@ -186,7 +191,7 @@ body {
   padding: 0.65rem 0.9rem;
   margin-bottom: 1rem;
   font-family: var(--font);
-  font-size: 1rem;
+  font-size: 1.1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -207,7 +212,7 @@ body {
   margin-top: 1.5rem;
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .auth-footer a {
@@ -219,41 +224,244 @@ body {
   text-decoration: underline;
 }
 
-/* Dashboard */
-.dashboard h1 {
-  font-size: 1.6rem;
+/* Dashboard layout */
+.dashboard-layout {
+  display: flex;
+  min-height: calc(100vh - 60px);
+}
+
+.dashboard-main {
+  flex: 1;
+  max-width: 680px;
+  padding: 2rem 1.5rem;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+.dashboard-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-elevated);
+  padding: 1.5rem 1rem;
+  overflow: hidden;
+  transition: width 0.25s ease, padding 0.25s ease, border-color 0.25s ease;
+}
+
+.dashboard-layout.sidebar-collapsed .dashboard-sidebar {
+  width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  border-right-width: 0;
+}
+
+.sidebar-toggle {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--bg-elevated);
+  border: none;
+  border-right: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.sidebar-toggle:hover {
+  background: var(--bg);
+}
+
+.sidebar-toggle .hamburger-line {
+  display: block;
+  width: 22px;
+  height: 3px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.dashboard-layout.sidebar-collapsed .sidebar-toggle {
+  border-right: 1px solid var(--border);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sidebar-link {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-family: var(--font);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+}
+
+.sidebar-link:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.sidebar-link.active {
+  color: var(--accent);
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.sidebar-spotify {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.spotify-status {
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  margin: 0 0 0.75rem;
+}
+
+.sidebar-spotify .btn {
+  font-size: 0.95rem;
+}
+
+.ranking-panel {
+  display: none;
+}
+
+.ranking-panel.active {
+  display: block;
+}
+
+.ranking-panel h1 {
+  font-size: 1.9rem;
   margin: 0 0 0.35rem;
 }
 
 .dashboard-sub {
   color: var(--text-muted);
+  font-size: 1.15rem;
   margin: 0 0 1.5rem;
 }
 
-.add-artist {
+.add-row {
   display: flex;
   gap: 0.75rem;
   margin-bottom: 1.5rem;
 }
 
-.add-artist input {
+.add-row input {
   flex: 1;
-  padding: 0.7rem 1rem;
+  padding: 0.75rem 1rem;
   font-family: var(--font);
-  font-size: 1rem;
+  font-size: 1.15rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   color: var(--text);
 }
 
-.add-artist input:focus {
+.add-row input:focus {
   outline: none;
   border-color: var(--accent);
 }
 
-.add-artist input::placeholder {
+.add-row input::placeholder {
   color: var(--text-muted);
+}
+
+.add-row-with-suggest .suggest-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.suggest-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 2px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+}
+
+.suggest-dropdown.open {
+  display: block;
+}
+
+.suggest-item {
+  padding: 0.6rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.suggest-item:last-child {
+  border-bottom: none;
+}
+
+.suggest-item:hover {
+  background: var(--bg);
+}
+
+.suggest-item .suggest-artist {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.recommendations-block {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.recommendations-title {
+  font-size: 1.25rem;
+  margin: 0 0 0.75rem;
+}
+
+.recommendations-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.recommendations-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 1.05rem;
+}
+
+.recommendations-list li:last-child {
+  border-bottom: none;
+}
+
+.recommendations-list .rec-add {
+  flex-shrink: 0;
+  margin-left: 1rem;
+  font-size: 0.9rem;
 }
 
 .rankings-list {
@@ -272,7 +480,7 @@ body {
   padding: 2rem;
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 1.15rem;
 }
 
 .ranking-items {
@@ -284,8 +492,8 @@ body {
 .ranking-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
+  gap: 0.85rem;
+  padding: 1rem 1.15rem;
   margin-bottom: 0.5rem;
   background: var(--bg-card);
   border: 1px solid var(--border);
@@ -309,28 +517,30 @@ body {
 
 .ranking-item .rank-num {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--bg-elevated);
   border-radius: 8px;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 1.05rem;
   font-weight: 600;
   color: var(--accent);
 }
 
-.ranking-item .artist-name {
+.ranking-item .artist-name,
+.ranking-item .item-name {
   flex: 1;
   font-weight: 500;
+  font-size: 1.1rem;
 }
 
 .ranking-item .remove-btn {
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -339,7 +549,7 @@ body {
   border-radius: 8px;
   color: var(--text-muted);
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.4rem;
   line-height: 1;
   transition: color 0.2s, background 0.2s;
 }
@@ -352,7 +562,7 @@ body {
 .drag-handle {
   flex-shrink: 0;
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   cursor: grab;
 }
 

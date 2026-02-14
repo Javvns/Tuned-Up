@@ -1,21 +1,80 @@
 {% extends "base.html" %}
 {% block title %}My rankings – Tuned Up{% endblock %}
 {% block content %}
-<section class="dashboard">
-  <h1>My artist rankings</h1>
-  <p class="dashboard-sub">Add artists and drag to reorder. Your list, your order.</p>
-  <div class="add-artist">
-    <input type="text" id="artist-input" placeholder="Add an artist…" autocomplete="off">
-    <button type="button" id="add-artist-btn" class="btn btn-primary">Add</button>
-  </div>
-  <div id="rankings-list" class="rankings-list" data-empty="true">
-    <div class="empty-state" id="empty-state">No artists yet. Add one above.</div>
-    <ul class="ranking-items" id="ranking-items"></ul>
-  </div>
-</section>
+<div class="dashboard-layout" id="dashboard-layout">
+  <button type="button" class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle menu">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </button>
+  <aside class="dashboard-sidebar" id="dashboard-sidebar">
+    <nav class="sidebar-nav">
+      <button type="button" class="sidebar-link active" data-panel="artists">Artists</button>
+      <button type="button" class="sidebar-link" data-panel="albums">Albums</button>
+      <button type="button" class="sidebar-link" data-panel="songs">Songs</button>
+    </nav>
+    <div class="sidebar-spotify">
+      <p id="spotify-status" class="spotify-status">Checking…</p>
+      <a href="{{ url_for('auth.spotify_login') }}" id="spotify-connect-btn" class="btn btn-primary btn-block" style="display: none;">Connect Spotify</a>
+    </div>
+  </aside>
+  <main class="dashboard-main">
+    <section class="ranking-panel active" id="panel-artists" data-type="artists">
+      <h1>My artist rankings</h1>
+      <p class="dashboard-sub">Add artists and drag to reorder. Start typing for Spotify suggestions.</p>
+      <div class="add-row add-row-with-suggest">
+        <div class="suggest-wrap">
+          <input type="text" id="artist-input" placeholder="Add an artist…" autocomplete="off">
+          <div class="suggest-dropdown" id="suggest-artist" role="listbox"></div>
+        </div>
+        <button type="button" id="add-artist-btn" class="btn btn-primary">Add</button>
+      </div>
+      <div class="rankings-list" id="rankings-list-artists" data-empty="true">
+        <div class="empty-state" id="empty-state-artists">No artists yet. Add one above.</div>
+        <ul class="ranking-items" id="ranking-items-artists"></ul>
+      </div>
+    </section>
+    <section class="ranking-panel" id="panel-albums" data-type="albums">
+      <h1>My album rankings</h1>
+      <p class="dashboard-sub">Add albums and drag to reorder.</p>
+      <div class="add-row">
+        <input type="text" id="album-input" placeholder="Add an album…" autocomplete="off">
+        <button type="button" id="add-album-btn" class="btn btn-primary">Add</button>
+      </div>
+      <div class="rankings-list" id="rankings-list-albums" data-empty="true">
+        <div class="empty-state" id="empty-state-albums">No albums yet. Add one above.</div>
+        <ul class="ranking-items" id="ranking-items-albums"></ul>
+      </div>
+    </section>
+    <section class="ranking-panel" id="panel-songs" data-type="songs">
+      <h1>My song rankings</h1>
+      <p class="dashboard-sub">Add songs and drag to reorder. Start typing for Spotify suggestions.</p>
+      <div class="add-row add-row-with-suggest">
+        <div class="suggest-wrap">
+          <input type="text" id="song-input" placeholder="Add a song…" autocomplete="off">
+          <div class="suggest-dropdown" id="suggest-song" role="listbox"></div>
+        </div>
+        <button type="button" id="add-song-btn" class="btn btn-primary">Add</button>
+      </div>
+      <div class="rankings-list" id="rankings-list-songs" data-empty="true">
+        <div class="empty-state" id="empty-state-songs">No songs yet. Add one above.</div>
+        <ul class="ranking-items" id="ranking-items-songs"></ul>
+      </div>
+      <div class="recommendations-block" id="recommendations-block" style="display: none;">
+        <h2 class="recommendations-title">Recommended for you</h2>
+        <button type="button" class="btn btn-ghost" id="fetch-recommendations-btn">Get recommendations from Spotify</button>
+        <ul class="recommendations-list" id="recommendations-list"></ul>
+      </div>
+    </section>
+  </main>
+</div>
 {% endblock %}
 {% block scripts %}
 <script>
-  window.TUNEDUP = { apiBase: "/api/artists" };
+  window.TUNEDUP = {
+    apiBase: "/api/artists",
+    apis: { artists: "/api/artists", albums: "/api/albums", songs: "/api/songs" },
+    spotify: { status: "/api/spotify/status", suggest: "/api/spotify/suggest", recommendations: "/api/spotify/recommendations" }
+  };
 </script>
 {% endblock %}
