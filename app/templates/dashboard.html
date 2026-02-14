@@ -33,10 +33,16 @@
         <div class="empty-state" id="empty-state-artists">No artists yet. Add one above.</div>
         <ul class="ranking-items" id="ranking-items-artists"></ul>
       </div>
+      <div class="recommendations-block rec-artists" id="recommendations-block-artists" style="display: none;">
+        <h2 class="recommendations-title">From your Spotify</h2>
+        <p class="recommendations-desc">Your most listened artists. Click Add to put them on your list.</p>
+        <button type="button" class="btn btn-ghost" id="fetch-recommendations-artists-btn">Load my top artists</button>
+        <ul class="recommendations-list" id="recommendations-list-artists"></ul>
+      </div>
     </section>
     <section class="ranking-panel" id="panel-albums" data-type="albums">
       <h1>My album rankings</h1>
-      <p class="dashboard-sub">Add albums and drag to reorder.</p>
+      <p class="dashboard-sub">Add albums and drag to reorder. Load suggestions from your Spotify listening.</p>
       <div class="add-row">
         <input type="text" id="album-input" placeholder="Add an album…" autocomplete="off">
         <button type="button" id="add-album-btn" class="btn btn-primary">Add</button>
@@ -44,6 +50,12 @@
       <div class="rankings-list" id="rankings-list-albums" data-empty="true">
         <div class="empty-state" id="empty-state-albums">No albums yet. Add one above.</div>
         <ul class="ranking-items" id="ranking-items-albums"></ul>
+      </div>
+      <div class="recommendations-block rec-albums" id="recommendations-block-albums" style="display: none;">
+        <h2 class="recommendations-title">From your Spotify</h2>
+        <p class="recommendations-desc">Albums from your most listened songs and recommendations. Click Add to rank them.</p>
+        <button type="button" class="btn btn-ghost" id="fetch-recommendations-albums-btn">Load albums from my listening</button>
+        <ul class="recommendations-list" id="recommendations-list-albums"></ul>
       </div>
     </section>
     <section class="ranking-panel" id="panel-songs" data-type="songs">
@@ -60,9 +72,10 @@
         <div class="empty-state" id="empty-state-songs">No songs yet. Add one above.</div>
         <ul class="ranking-items" id="ranking-items-songs"></ul>
       </div>
-      <div class="recommendations-block" id="recommendations-block" style="display: none;">
-        <h2 class="recommendations-title">Recommended for you</h2>
-        <button type="button" class="btn btn-ghost" id="fetch-recommendations-btn">Get recommendations from Spotify</button>
+      <div class="recommendations-block rec-songs" id="recommendations-block" style="display: none;">
+        <h2 class="recommendations-title">From your Spotify</h2>
+        <p class="recommendations-desc">Songs recommended from your most listened artists and tracks.</p>
+        <button type="button" class="btn btn-ghost" id="fetch-recommendations-btn">Load recommended songs</button>
         <ul class="recommendations-list" id="recommendations-list"></ul>
       </div>
     </section>
@@ -74,7 +87,13 @@
   window.TUNEDUP = {
     apiBase: "/api/artists",
     apis: { artists: "/api/artists", albums: "/api/albums", songs: "/api/songs" },
-    spotify: { status: "/api/spotify/status", suggest: "/api/spotify/suggest", recommendations: "/api/spotify/recommendations" }
+    spotify: {
+      status: "/api/spotify/status",
+      suggest: "/api/spotify/suggest",
+      recommendations: "/api/spotify/recommendations",
+      recommendationsArtists: "/api/spotify/recommendations/artists",
+      recommendationsAlbums: "/api/spotify/recommendations/albums"
+    }
   };
 </script>
 {% endblock %}

@@ -1,7 +1,15 @@
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+
+# Load .env from project root (parent of app/) and from cwd
+_env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(_env_path)
+load_dotenv()  # fallback: .env in current working directory
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -34,5 +42,25 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _add_spotify_columns_if_missing(app)
 
     return app
+
+
+def _add_spotify_columns_if_missing(app):
+    """Add spotify_id and spotify_refresh_token to users table if they don't exist."""
+    from sqlalchemy import text
+    try:
+        result = db.session.execute(text("PRAGMA table_info(users)"))
+        columns = [row[1] for row in result.fetchall()]
+    except Exception:
+        return
+    if "spotify_id" not in columns:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN spotify_id VARCHAR(80)"))
+    if "spotify_refresh_token" not in columns:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN spotify_refresh_token VARCHAR(256)"))
+    if "spotify_access_token" not in columns:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN spotify_access_token TEXT"))
+    if "spotify_token_expires_at" not in columns:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN spotify_token_expires_at BIGINT"))
+    db.session.commit()

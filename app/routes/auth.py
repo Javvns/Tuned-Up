@@ -94,6 +94,8 @@ def spotify_callback():
     if token_info:
         current_user.spotify_refresh_token = token_info.get("refresh_token")
         current_user.spotify_id = token_info.get("user_id")
+        current_user.spotify_access_token = token_info.get("access_token")
+        current_user.spotify_token_expires_at = token_info.get("expires_at")
         db.session.commit()
         flash("Spotify connected. You can get personalized recommendations.", "success")
     else:

@@ -203,22 +203,31 @@
 
   switchPanel("artists");
 
-  // ——— Spotify ———
+  // ——— Spotify (deferred so page paints first; short timeout so status never blocks) ———
   const spotifyBase = window.TUNEDUP?.spotify;
   if (spotifyBase) {
     const statusEl = document.getElementById("spotify-status");
     const connectBtn = document.getElementById("spotify-connect-btn");
-    fetch(spotifyBase.status, { credentials: "same-origin" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (statusEl) statusEl.textContent = data.connected ? "Spotify connected" : "Connect for recommendations";
-        if (connectBtn) connectBtn.style.display = data.connected ? "none" : "block";
-        const recBlock = document.getElementById("recommendations-block");
-        if (recBlock) recBlock.style.display = data.connected ? "block" : "none";
-      })
-      .catch(() => {
-        if (statusEl) statusEl.textContent = "Spotify unavailable";
+    const setSpotifyUI = (connected) => {
+      if (statusEl) statusEl.textContent = connected ? "Spotify connected" : "Connect for recommendations";
+      if (connectBtn) connectBtn.style.display = connected ? "none" : "block";
+      ["recommendations-block", "recommendations-block-artists", "recommendations-block-albums"].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = connected ? "block" : "none";
       });
+    };
+    setTimeout(() => {
+      const c = new AbortController();
+      const t = setTimeout(() => c.abort(), 5000);
+      fetch(spotifyBase.status, { credentials: "same-origin", signal: c.signal })
+        .then((r) => r.json())
+        .then((data) => { setSpotifyUI(!!data.connected); })
+        .catch(() => {
+          if (statusEl) statusEl.textContent = "Connect for recommendations";
+          setSpotifyUI(false);
+        })
+        .finally(() => clearTimeout(t));
+    }, 0);
   }
 
   function debounce(fn, ms) {
@@ -289,6 +298,12 @@
   setupSuggest("artist-input", "suggest-artist", "artist");
   setupSuggest("song-input", "suggest-song", "track");
 
+  function fetchWithTimeout(url, ms) {
+    const c = new AbortController();
+    const t = setTimeout(() => c.abort(), ms);
+    return fetch(url, { credentials: "same-origin", signal: c.signal }).finally(() => clearTimeout(t));
+  }
+
   const fetchRecBtn = document.getElementById("fetch-recommendations-btn");
   const recList = document.getElementById("recommendations-list");
   if (spotifyBase && fetchRecBtn && recList) {
@@ -296,7 +311,7 @@
       fetchRecBtn.disabled = true;
       fetchRecBtn.textContent = "Loading…";
       try {
-        const res = await fetch(spotifyBase.recommendations, { credentials: "same-origin" });
+        const res = await fetchWithTimeout(spotifyBase.recommendations, 35000);
         const data = await res.json();
         recList.innerHTML = "";
         if (data.tracks && data.tracks.length) {
@@ -315,13 +330,87 @@
             recList.appendChild(li);
           });
         } else {
-          recList.innerHTML = "<li>" + (data.message || "No recommendations right now.") + "</li>";
+          recList.innerHTML = "<li>" + (data.message || data.error || "No recommendations right now.") + "</li>";
         }
       } catch (e) {
-        recList.innerHTML = "<li>Could not load recommendations.</li>";
+        recList.innerHTML = "<li>" + (e.name === "AbortError" ? "Request timed out. Check your connection or try again in a moment. If it keeps happening, disconnect and reconnect Spotify in the sidebar." : "Could not load recommendations.") + "</li>";
+      } finally {
+        fetchRecBtn.disabled = false;
+        fetchRecBtn.textContent = "Load recommended songs";
       }
-      fetchRecBtn.disabled = false;
-      fetchRecBtn.textContent = "Get recommendations from Spotify";
+    });
+  }
+
+  const fetchArtistsBtn = document.getElementById("fetch-recommendations-artists-btn");
+  const recListArtists = document.getElementById("recommendations-list-artists");
+  if (spotifyBase && fetchArtistsBtn && recListArtists) {
+    fetchArtistsBtn.addEventListener("click", async () => {
+      fetchArtistsBtn.disabled = true;
+      fetchArtistsBtn.textContent = "Loading…";
+      try {
+        const res = await fetchWithTimeout(spotifyBase.recommendationsArtists, 35000);
+        const data = await res.json();
+        recListArtists.innerHTML = "";
+        if (data.artists && data.artists.length) {
+          data.artists.forEach((a) => {
+            const li = document.createElement("li");
+            li.innerHTML = '<span>' + escapeHtml(a.name) + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
+            li.querySelector(".rec-add").addEventListener("click", () => {
+              const artistInput = document.getElementById("artist-input");
+              const artistPanel = panels.find((p) => p.type === "artists");
+              if (artistInput && artistPanel) {
+                artistInput.value = a.name;
+                addItem("artists");
+              }
+            });
+            recListArtists.appendChild(li);
+          });
+        } else {
+          recListArtists.innerHTML = "<li>" + (data.error || "No top artists. Listen to more on Spotify.") + "</li>";
+        }
+      } catch (e) {
+        recListArtists.innerHTML = "<li>" + (e.name === "AbortError" ? "Request timed out. Check your connection or try again. If it keeps happening, reconnect Spotify from the sidebar." : "Could not load artists.") + "</li>";
+      } finally {
+        fetchArtistsBtn.disabled = false;
+        fetchArtistsBtn.textContent = "Load my top artists";
+      }
+    });
+  }
+
+  const fetchAlbumsBtn = document.getElementById("fetch-recommendations-albums-btn");
+  const recListAlbums = document.getElementById("recommendations-list-albums");
+  if (spotifyBase && fetchAlbumsBtn && recListAlbums) {
+    fetchAlbumsBtn.addEventListener("click", async () => {
+      fetchAlbumsBtn.disabled = true;
+      fetchAlbumsBtn.textContent = "Loading…";
+      try {
+        const res = await fetchWithTimeout(spotifyBase.recommendationsAlbums, 35000);
+        const data = await res.json();
+        recListAlbums.innerHTML = "";
+        if (data.albums && data.albums.length) {
+          data.albums.forEach((a) => {
+            const name = a.artist ? a.name + " – " + a.artist : a.name;
+            const li = document.createElement("li");
+            li.innerHTML = '<span>' + escapeHtml(a.name) + (a.artist ? ' <span class="suggest-artist">' + escapeHtml(a.artist) + "</span>" : "") + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
+            li.querySelector(".rec-add").addEventListener("click", () => {
+              const albumInput = document.getElementById("album-input");
+              const albumPanel = panels.find((p) => p.type === "albums");
+              if (albumInput && albumPanel) {
+                albumInput.value = a.artist ? a.name + " – " + a.artist : a.name;
+                addItem("albums");
+              }
+            });
+            recListAlbums.appendChild(li);
+          });
+        } else {
+          recListAlbums.innerHTML = "<li>" + (data.error || "No albums. Listen to more on Spotify.") + "</li>";
+        }
+      } catch (e) {
+        recListAlbums.innerHTML = "<li>" + (e.name === "AbortError" ? "Request timed out. Check your connection or try again. If it keeps happening, reconnect Spotify from the sidebar." : "Could not load albums.") + "</li>";
+      } finally {
+        fetchAlbumsBtn.disabled = false;
+        fetchAlbumsBtn.textContent = "Load albums from my listening";
+      }
     });
   }
 })();
