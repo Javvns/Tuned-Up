@@ -33,7 +33,7 @@ def suggest():
     if not q or len(q) < 2:
         return jsonify([])
     type_param = (request.args.get("type") or "artist").lower()
-    if type_param not in ("artist", "track", "artist,track"):
+    if type_param not in ("artist", "track", "album", "artist,track"):
         type_param = "artist"
     limit = min(10, max(1, int(request.args.get("limit", 8))))
     sp = get_app_spotify()
@@ -50,6 +50,10 @@ def suggest():
                 name = t["name"]
                 artist_names = ", ".join(ar["name"] for ar in t["artists"][:3])
                 out.append({"type": "track", "name": name, "artist": artist_names, "id": t["id"]})
+        if "albums" in results and results["albums"]["items"]:
+            for a in results["albums"]["items"]:
+                artist_names = ", ".join(ar["name"] for ar in a.get("artists", [])[:3])
+                out.append({"type": "album", "name": a["name"], "artist": artist_names, "id": a["id"]})
         return jsonify(out[: limit * 2])
     except Exception:
         return jsonify([])
@@ -59,8 +63,8 @@ def suggest():
 @login_required
 def recommendations():
     """
-    Get personalized track recommendations for the current user (requires Spotify connected).
-    Returns a list of suggested tracks based on user's top artists/tracks.
+    Get personalized track suggestions for the current user (requires Spotify connected).
+    Returns the user's top tracks across multiple time ranges.
     """
     if not spotify_configured():
         return jsonify({"error": "Spotify not configured"}), 503
@@ -72,28 +76,25 @@ def recommendations():
 
     def _fetch():
         try:
-            seed_artists = []
-            seed_tracks = []
-            top_artists = sp.current_user_top_artists(limit=3)
-            for a in top_artists.get("items", []):
-                seed_artists.append(a["id"])
-            top_tracks = sp.current_user_top_tracks(limit=2)
-            for t in top_tracks.get("items", []):
-                seed_tracks.append(t["id"])
-            seed_a = seed_artists[:2] if seed_artists else None
-            seed_t = seed_tracks[:1] if seed_tracks else None
-            if not seed_a and not seed_t:
+            seen = set()
+            tracks = []
+            for time_range in ("short_term", "medium_term", "long_term"):
+                top = sp.current_user_top_tracks(limit=20, time_range=time_range)
+                for t in top.get("items", []):
+                    if t["id"] not in seen:
+                        seen.add(t["id"])
+                        album_imgs = t.get("album", {}).get("images", [])
+                        img = album_imgs[-1]["url"] if album_imgs else None
+                        tracks.append({
+                            "name": t["name"],
+                            "artist": ", ".join(ar["name"] for ar in t["artists"]),
+                            "id": t["id"],
+                            "image": img,
+                        })
+            if not tracks:
                 out[0] = {"tracks": [], "message": "Listen to more music on Spotify to get recommendations."}
                 return
-            recs = sp.recommendations(seed_artists=seed_a, seed_tracks=seed_t, limit=15)
-            tracks = []
-            for t in recs.get("tracks", []):
-                tracks.append({
-                    "name": t["name"],
-                    "artist": ", ".join(ar["name"] for ar in t["artists"]),
-                    "id": t["id"],
-                })
-            out[0] = {"tracks": tracks}
+            out[0] = {"tracks": tracks[:30]}
         except Exception as e:
             err[0] = e
 
@@ -142,7 +143,11 @@ def recommendations_artists():
         db.session.rollback()
         return jsonify({"artists": [], "error": "Could not load artists"}), 200
     top = result[0]
-    artists = [{"name": a["name"], "id": a["id"]} for a in top.get("items", [])]
+    artists = []
+    for a in top.get("items", []):
+        imgs = a.get("images", [])
+        img = imgs[-1]["url"] if imgs else None
+        artists.append({"name": a["name"], "id": a["id"], "image": img})
     db.session.commit()
     return jsonify({"artists": artists})
 
@@ -165,28 +170,18 @@ def recommendations_albums():
         try:
             seen = set()
             albums = []
-            top_tracks = sp.current_user_top_tracks(limit=50)
-            for t in top_tracks.get("items", []):
-                alb = t.get("album")
-                if alb and alb.get("id") and alb["id"] not in seen:
-                    seen.add(alb["id"])
-                    name = alb.get("name") or "Unknown"
-                    artist_names = ", ".join(a["name"] for a in alb.get("artists", [])[:3])
-                    albums.append({"name": name, "artist": artist_names, "id": alb["id"]})
-            top_artists = sp.current_user_top_artists(limit=2)
-            seed_a = [a["id"] for a in top_artists.get("items", [])]
-            top_t = sp.current_user_top_tracks(limit=1)
-            seed_t = [t["id"] for t in top_t.get("items", [])]
-            if seed_a or seed_t:
-                recs = sp.recommendations(seed_artists=seed_a[:2] or None, seed_tracks=seed_t[:1] or None, limit=20)
-                for t in recs.get("tracks", []):
+            for time_range in ("short_term", "medium_term", "long_term"):
+                top_tracks = sp.current_user_top_tracks(limit=50, time_range=time_range)
+                for t in top_tracks.get("items", []):
                     alb = t.get("album")
                     if alb and alb.get("id") and alb["id"] not in seen:
                         seen.add(alb["id"])
                         name = alb.get("name") or "Unknown"
                         artist_names = ", ".join(a["name"] for a in alb.get("artists", [])[:3])
-                        albums.append({"name": name, "artist": artist_names, "id": alb["id"]})
-            result[0] = albums[:25]
+                        alb_imgs = alb.get("images", [])
+                        img = alb_imgs[-1]["url"] if alb_imgs else None
+                        albums.append({"name": name, "artist": artist_names, "id": alb["id"], "image": img})
+            result[0] = albums[:30]
         except Exception as e:
             err[0] = e
 

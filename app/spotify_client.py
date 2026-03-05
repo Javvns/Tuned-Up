@@ -92,31 +92,40 @@ def _clear_user_spotify_tokens(user):
 
 
 def get_spotify_for_user(user):
-    """Return a Spotipy client for the given user (for recommendations). Uses refresh token."""
+    """Return a Spotipy client for the given user (for recommendations). Uses refresh token.
+
+    Creates the client with a raw access token (not auth_manager) so Spotipy never
+    falls back to an interactive OAuth prompt on a web server.
+    """
     if not user or not user.spotify_refresh_token:
         return None
     cfg = get_spotify_config()
     if not cfg["client_id"] or not cfg["client_secret"]:
         return None
-    cache = UserTokenCache(user)
-    auth = SpotifyOAuth(
-        client_id=cfg["client_id"],
-        client_secret=cfg["client_secret"],
-        redirect_uri=cfg["redirect_uri"],
-        scope="user-top-read",
-        open_browser=False,
-        cache_handler=cache,
-        requests_timeout=12,
-    )
-    # If we already have a valid token, no need to refresh; return client.
+    # If we already have a valid token, use it directly.
     if _user_has_valid_token(user):
-        return Spotify(auth_manager=auth, requests_timeout=15)
-    # Otherwise refresh first with a short timeout so we don't hang.
+        return Spotify(auth=user.spotify_access_token, requests_timeout=15)
+    # Otherwise explicitly refresh the token.
+    result = [None]
     err = [None]
 
     def _do_refresh():
         try:
-            auth.get_access_token(code=None, as_dict=True, check_cache=True)
+            auth = SpotifyOAuth(
+                client_id=cfg["client_id"],
+                client_secret=cfg["client_secret"],
+                redirect_uri=cfg["redirect_uri"],
+                scope="user-top-read",
+                open_browser=False,
+                requests_timeout=12,
+            )
+            token_info = auth.refresh_access_token(user.spotify_refresh_token)
+            if token_info and token_info.get("access_token"):
+                user.spotify_access_token = token_info["access_token"]
+                user.spotify_token_expires_at = token_info.get("expires_at")
+                if token_info.get("refresh_token"):
+                    user.spotify_refresh_token = token_info["refresh_token"]
+                result[0] = token_info["access_token"]
         except Exception as e:
             err[0] = e
 
@@ -124,12 +133,11 @@ def get_spotify_for_user(user):
     th.start()
     th.join(timeout=REFRESH_TIMEOUT_SEC)
     if th.is_alive():
-        # Refresh is still running; return None so caller can show "try again" / reconnect.
         return None
-    if err[0]:
+    if err[0] or not result[0]:
         _clear_user_spotify_tokens(user)
         return None
-    return Spotify(auth_manager=auth, requests_timeout=15)
+    return Spotify(auth=result[0], requests_timeout=15)
 
 
 _app_client = None

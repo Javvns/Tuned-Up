@@ -43,8 +43,11 @@
     <section class="ranking-panel" id="panel-albums" data-type="albums">
       <h1>My album rankings</h1>
       <p class="dashboard-sub">Add albums and drag to reorder. Load suggestions from your Spotify listening.</p>
-      <div class="add-row">
-        <input type="text" id="album-input" placeholder="Add an album…" autocomplete="off">
+      <div class="add-row add-row-with-suggest">
+        <div class="suggest-wrap">
+          <input type="text" id="album-input" placeholder="Add an album…" autocomplete="off">
+          <div class="suggest-dropdown" id="suggest-album" role="listbox"></div>
+        </div>
         <button type="button" id="add-album-btn" class="btn btn-primary">Add</button>
       </div>
       <div class="rankings-list" id="rankings-list-albums" data-empty="true">

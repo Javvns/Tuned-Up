@@ -50,7 +50,7 @@
     return panels.find((x) => x.type === type)?.listEl;
   }
 
-  function renderItem(type, item) {
+  function renderItem(type, item, imageUrl) {
     const nameKey = nameKeys[type];
     const name = item[nameKey];
     const li = document.createElement("li");
@@ -58,9 +58,12 @@
     li.dataset.id = item.id;
     li.dataset.type = type;
     li.draggable = true;
+    const imgClass = type === "artists" ? "ranking-img ranking-img-round" : "ranking-img";
+    const imgHtml = imageUrl ? '<img class="' + imgClass + '" src="' + imageUrl + '" alt="" loading="lazy">' : '';
     li.innerHTML =
       '<span class="drag-handle" aria-hidden="true">⋮⋮</span>' +
       '<span class="rank-num">' + item.rank_position + "</span>" +
+      imgHtml +
       '<span class="item-name">' + escapeHtml(name) + "</span>" +
       '<button type="button" class="remove-btn" aria-label="Remove">×</button>';
     li.querySelector(".remove-btn").addEventListener("click", (e) => {
@@ -97,23 +100,25 @@
     }
   }
 
-  async function addItem(type) {
+  async function addItem(type, imageUrl) {
     const p = panels.find((x) => x.type === type);
-    if (!p || !p.inputEl || !p.addBtn) return;
+    if (!p || !p.inputEl || !p.addBtn) return false;
     const nameKey = nameKeys[type];
     const name = (p.inputEl.value || "").trim();
-    if (!name) return;
+    if (!name) return false;
     p.addBtn.disabled = true;
     try {
       const payload = {};
       payload[nameKey] = name;
       const item = await api(type, "POST", "/", payload);
-      p.listEl.appendChild(renderItem(type, item));
+      p.listEl.appendChild(renderItem(type, item, imageUrl));
       setEmpty(type, false);
       syncRanks(type);
       p.inputEl.value = "";
+      return true;
     } catch (e) {
       alert(e.message || "Could not add");
+      return false;
     } finally {
       p.addBtn.disabled = false;
     }
@@ -253,8 +258,9 @@
       if (abort) abort.abort();
       abort = new AbortController();
       try {
+        const searchType = type === "artist" ? "artist" : type === "album" ? "album" : "track";
         const res = await fetch(
-          spotifyBase.suggest + "?q=" + encodeURIComponent(q) + "&type=" + (type === "artist" ? "artist" : "track") + "&limit=8",
+          spotifyBase.suggest + "?q=" + encodeURIComponent(q) + "&type=" + searchType + "&limit=8",
           { credentials: "same-origin", signal: abort.signal }
         );
         const data = await res.json();
@@ -296,6 +302,7 @@
     });
   }
   setupSuggest("artist-input", "suggest-artist", "artist");
+  setupSuggest("album-input", "suggest-album", "album");
   setupSuggest("song-input", "suggest-song", "track");
 
   function fetchWithTimeout(url, ms) {
@@ -318,13 +325,14 @@
           data.tracks.forEach((t) => {
             const name = t.artist ? t.name + " – " + t.artist : t.name;
             const li = document.createElement("li");
-            li.innerHTML = '<span>' + escapeHtml(t.name) + (t.artist ? ' <span class="suggest-artist">' + escapeHtml(t.artist) + "</span>" : "") + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
+            const imgHtml = t.image ? '<img class="rec-img" src="' + t.image + '" alt="" loading="lazy">' : '';
+            li.innerHTML = imgHtml + '<span>' + escapeHtml(t.name) + (t.artist ? ' <span class="suggest-artist">' + escapeHtml(t.artist) + "</span>" : "") + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
             li.querySelector(".rec-add").addEventListener("click", () => {
               const songInput = document.getElementById("song-input");
               const songPanel = panels.find((p) => p.type === "songs");
               if (songInput && songPanel) {
                 songInput.value = name;
-                addItem("songs");
+                addItem("songs", t.image).then((ok) => { if (ok) li.remove(); });
               }
             });
             recList.appendChild(li);
@@ -336,7 +344,7 @@
         recList.innerHTML = "<li>" + (e.name === "AbortError" ? "Request timed out. Check your connection or try again in a moment. If it keeps happening, disconnect and reconnect Spotify in the sidebar." : "Could not load recommendations.") + "</li>";
       } finally {
         fetchRecBtn.disabled = false;
-        fetchRecBtn.textContent = "Load recommended songs";
+        fetchRecBtn.textContent = "Reload recommended songs";
       }
     });
   }
@@ -354,13 +362,14 @@
         if (data.artists && data.artists.length) {
           data.artists.forEach((a) => {
             const li = document.createElement("li");
-            li.innerHTML = '<span>' + escapeHtml(a.name) + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
+            const imgHtml = a.image ? '<img class="rec-img rec-img-round" src="' + a.image + '" alt="" loading="lazy">' : '';
+            li.innerHTML = imgHtml + '<span>' + escapeHtml(a.name) + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
             li.querySelector(".rec-add").addEventListener("click", () => {
               const artistInput = document.getElementById("artist-input");
               const artistPanel = panels.find((p) => p.type === "artists");
               if (artistInput && artistPanel) {
                 artistInput.value = a.name;
-                addItem("artists");
+                addItem("artists", a.image).then((ok) => { if (ok) li.remove(); });
               }
             });
             recListArtists.appendChild(li);
@@ -372,7 +381,7 @@
         recListArtists.innerHTML = "<li>" + (e.name === "AbortError" ? "Request timed out. Check your connection or try again. If it keeps happening, reconnect Spotify from the sidebar." : "Could not load artists.") + "</li>";
       } finally {
         fetchArtistsBtn.disabled = false;
-        fetchArtistsBtn.textContent = "Load my top artists";
+        fetchArtistsBtn.textContent = "Reload my top artists";
       }
     });
   }
@@ -391,13 +400,14 @@
           data.albums.forEach((a) => {
             const name = a.artist ? a.name + " – " + a.artist : a.name;
             const li = document.createElement("li");
-            li.innerHTML = '<span>' + escapeHtml(a.name) + (a.artist ? ' <span class="suggest-artist">' + escapeHtml(a.artist) + "</span>" : "") + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
+            const imgHtml = a.image ? '<img class="rec-img" src="' + a.image + '" alt="" loading="lazy">' : '';
+            li.innerHTML = imgHtml + '<span>' + escapeHtml(a.name) + (a.artist ? ' <span class="suggest-artist">' + escapeHtml(a.artist) + "</span>" : "") + '</span><button type="button" class="btn btn-ghost rec-add">Add</button>';
             li.querySelector(".rec-add").addEventListener("click", () => {
               const albumInput = document.getElementById("album-input");
               const albumPanel = panels.find((p) => p.type === "albums");
               if (albumInput && albumPanel) {
                 albumInput.value = a.artist ? a.name + " – " + a.artist : a.name;
-                addItem("albums");
+                addItem("albums", a.image).then((ok) => { if (ok) li.remove(); });
               }
             });
             recListAlbums.appendChild(li);
@@ -409,7 +419,7 @@
         recListAlbums.innerHTML = "<li>" + (e.name === "AbortError" ? "Request timed out. Check your connection or try again. If it keeps happening, reconnect Spotify from the sidebar." : "Could not load albums.") + "</li>";
       } finally {
         fetchAlbumsBtn.disabled = false;
-        fetchAlbumsBtn.textContent = "Load albums from my listening";
+        fetchAlbumsBtn.textContent = "Reload albums from my listening";
       }
     });
   }
